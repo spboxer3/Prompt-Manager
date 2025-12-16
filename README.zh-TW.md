@@ -1,3 +1,4 @@
+<p align="center"><img src="https://github.com/spboxer3/Prompt-Manager/blob/main/icons/icon128.png"></p>
 <h1 align="center">Prompt Manager (專業提示詞管理器)</h1>
 
 <p align="center"><a href="https://github.com/spboxer3/Prompt-Manager/blob/main/README.md">English</a> | 繁體中文</p>
