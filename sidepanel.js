@@ -11,7 +11,7 @@
   const settingsView = document.getElementById('settings-view');
   const helpView = document.getElementById('help-view');
   
-  // ... (Buttons references remain same) ...
+  // Buttons
   const btnAdd = document.getElementById('btn-add');
   const btnCreateFirst = document.getElementById('btn-create-first');
   const btnSettings = document.getElementById('btn-settings');
@@ -51,6 +51,8 @@
   let prompts = [];
   let globalVars = []; 
   let currentPromptId = null;
+  // 暫存當前正在編輯的 Prompt 的變數值
+  let currentPromptVars = {}; 
   let activeTagFilter = null;
   let editingVarIndex = null; 
   let currentLang = 'en'; 
@@ -59,15 +61,12 @@
   initUI();
   loadData();
 
-  // --- Helper: UI Initialization (Toast/Modal) ---
   function initUI() {
-      // 1. Create Toast Container
       const toastContainer = document.createElement('div');
       toastContainer.className = 'toast-container';
       toastContainer.id = 'app-toast-container';
       document.body.appendChild(toastContainer);
 
-      // 2. Create Modal Backdrop
       const modalBackdrop = document.createElement('div');
       modalBackdrop.className = 'modal-backdrop';
       modalBackdrop.id = 'app-modal-backdrop';
@@ -84,25 +83,19 @@
       document.body.appendChild(modalBackdrop);
   }
 
-  // --- Helper: Show Toast ---
   function showToast(message, type = 'info') {
       const container = document.getElementById('app-toast-container');
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
       toast.textContent = message;
-      
       container.appendChild(toast);
-      
-      // Animation cycle
       requestAnimationFrame(() => toast.classList.add('visible'));
-      
       setTimeout(() => {
           toast.classList.remove('visible');
-          setTimeout(() => toast.remove(), 300); // Wait for fade out
+          setTimeout(() => toast.remove(), 300); 
       }, 3000);
   }
 
-  // --- Helper: Show Confirm Modal ---
   function showConfirm(message) {
       return new Promise((resolve) => {
           const backdrop = document.getElementById('app-modal-backdrop');
@@ -110,14 +103,11 @@
           const btnConfirm = backdrop.querySelector('#modal-btn-confirm');
           const btnCancel = backdrop.querySelector('#modal-btn-cancel');
           
-          // Update Text
-          backdrop.querySelector('.modal-title').textContent = t('appTitle'); // Or generic title
+          backdrop.querySelector('.modal-title').textContent = t('appTitle');
           msgEl.textContent = message;
-          btnConfirm.textContent = t('save').replace('Save', 'Confirm'); // Quick hack or add to locales
-          btnConfirm.textContent = "Confirm"; // Or use "OK"
+          btnConfirm.textContent = "Confirm";
           btnCancel.textContent = t('cancel');
 
-          // Open
           backdrop.classList.remove('hidden');
           requestAnimationFrame(() => backdrop.classList.add('visible'));
 
@@ -141,7 +131,6 @@
       });
   }
 
-  // --- Helper: Inject Script Early ---
   async function tryInjectContentScript() {
       try {
           const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -154,7 +143,6 @@
       } catch (e) { console.log("Pre-injection skipped:", e); }
   }
 
-  // --- I18n System ---
   function t(key) {
       const locales = window.promptManagerLocales;
       if (!locales) return key;
@@ -236,8 +224,10 @@
   }
 
   searchInput.addEventListener('input', (e) => renderPrompts(e.target.value));
+  
+  // 當內容變動時，更新變數輸入框，但不要清空已輸入的值
   editContent.addEventListener('input', () => {
-    if (currentPromptId) updateVariableInputs(editContent.value);
+    updateVariableInputs(editContent.value, true); // true = preserve existing values
   });
   
   btnExport.addEventListener('click', exportData);
@@ -349,24 +339,24 @@
   async function saveGlobalVar() {
       const name = newVarName.value.trim();
       const value = newVarValue.value; 
-      if (!name) return showToast(t('errorVarName'), 'error'); // Replaced Alert
-      if (!/^[a-zA-Z0-9_]+$/.test(name)) return showToast(t('errorVarFormat'), 'error'); // Replaced Alert
+      if (!name) return showToast(t('errorVarName'), 'error');
+      if (!/^[a-zA-Z0-9_]+$/.test(name)) return showToast(t('errorVarFormat'), 'error');
       const newVar = { name, value }; 
       if (editingVarIndex !== null) {
           globalVars[editingVarIndex] = newVar;
       } else {
-          if (globalVars.some(v => v.name === name)) return showToast(t('errorVarExists'), 'error'); // Replaced Alert
+          if (globalVars.some(v => v.name === name)) return showToast(t('errorVarExists'), 'error');
           globalVars.push(newVar);
       }
       await chrome.storage.local.set({ globalVars });
       renderGlobalVars();
       renderInsertVarOptions();
       hideVarForm();
-      showToast(t('saved')); // Replaced Alert
+      showToast(t('saved'));
   }
 
   async function deleteGlobalVar(index) {
-      if(await showConfirm(t('confirmDelete'))) { // Replaced confirm()
+      if(await showConfirm(t('confirmDelete'))) {
           globalVars.splice(index, 1);
           await chrome.storage.local.set({ globalVars });
           renderGlobalVars();
@@ -376,9 +366,22 @@
       }
   }
 
-  // --- Runner Logic ---
-  function updateVariableInputs(text) {
+  // --- Runner Logic (Updated for Persistence) ---
+  
+  // Updated: Handle saving values temporarily while editing
+  function updateVariableInputs(text, preserveValues = false) {
     const vars = extractVariables(text);
+    
+    // Capture existing values from UI if we need to preserve them
+    const currentUIValues = {};
+    if (preserveValues) {
+        document.querySelectorAll('.variable-input').forEach(input => {
+            currentUIValues[input.dataset.var] = input.value;
+        });
+        // Merge with our state tracker
+        Object.assign(currentPromptVars, currentUIValues);
+    }
+
     variablesContainer.innerHTML = '';
     
     if (vars.length === 0) return;
@@ -399,8 +402,14 @@
         `;
         variablesContainer.appendChild(div);
         
-        if (globalDef) {
-            const input = div.querySelector('input');
+        const input = div.querySelector('input');
+        
+        // Priority 1: Value currently being typed/saved in state
+        if (currentPromptVars[v] !== undefined) {
+            input.value = currentPromptVars[v];
+        } 
+        // Priority 2: Global Variable Default
+        else if (globalDef) {
             input.value = globalDef.value;
             input.style.backgroundColor = "#f0f7ff"; 
         }
@@ -409,20 +418,38 @@
   
   function compileText(rawText) {
       let compiled = rawText;
-      globalVars.forEach(gv => {
-          compiled = compiled.split(`{{${gv.name}}}`).join(gv.value);
+      
+      // Update our state from current UI inputs before compiling
+      document.querySelectorAll('.variable-input').forEach(i => {
+          currentPromptVars[i.dataset.var] = i.value;
+      });
+
+      // Replace Logic: Local Variables (Input Box) > Global Variables
+      compiled = compiled.replace(/\{\{(.*?)\}\}/g, (match, content) => {
+          const varName = content.trim();
+          
+          // 1. Check Local Input (currentPromptVars)
+          if (currentPromptVars[varName] !== undefined && currentPromptVars[varName] !== "") {
+              return currentPromptVars[varName];
+          }
+          
+          // 2. Check Global Vars
+          const gVar = globalVars.find(g => g.name === varName);
+          if (gVar) return gVar.value;
+          
+          return match;
       });
       return compiled;
   }
 
   async function insertToPage(textToInsert) {
-      const content = (typeof textToInsert === 'string') ? textToInsert : compilePrompt();
+      const content = (typeof textToInsert === 'string') ? textToInsert : compileText(editContent.value);
       
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if(!tab) return showToast("No active tab found.", 'error');
       
       if (tab.url && (tab.url.startsWith('chrome://') || tab.url.startsWith('edge://'))) {
-          return showToast("Cannot insert into system pages.", 'error'); // Replaced Alert
+          return showToast("Cannot insert into system pages.", 'error');
       }
       
       const executeInjection = async () => {
@@ -438,7 +465,6 @@
           handleInsertResponse(response);
       } catch(err) {
           console.error("Injection error:", err);
-          
           if (err.message.includes("Cannot access contents") || err.message.includes("Extension manifest")) {
               if (tab.url) {
                   try {
@@ -452,7 +478,6 @@
                       }
                   } catch (permErr) { console.error(permErr); }
               }
-              // Toast instead of alert for permission request
               showToast("Permission required. Click extension icon.", 'error');
           } else {
               showToast("Insert failed: " + err.message, 'error');
@@ -462,7 +487,6 @@
 
   function handleInsertResponse(response) {
       if (response && response.success) {
-          // Success Feedback
           const btn = document.getElementById('btn-insert');
           if (btn && !btn.closest('.hidden')) {
               const originalHtml = btn.innerHTML;
@@ -482,10 +506,10 @@
                   btn.style.borderColor = originalBorder;
               }, 1000);
           }
-          showToast(t('insertSuccess'), 'success'); // Also show toast
+          showToast(t('insertSuccess'), 'success');
       } else {
           if (response && response.error === "no_target") {
-              showToast(t('insertFail'), 'error'); // Replaced Alert
+              showToast(t('insertFail'), 'error');
           } else if (response && response.error === "not_supported") {
               showToast("Target field not supported.", 'error');
           } else {
@@ -494,7 +518,6 @@
       }
   }
 
-  // --- Render Functions ---
   function renderTagFilters() {
       const allTags = new Set();
       prompts.forEach(p => p.tags.forEach(t => allTags.add(t)));
@@ -548,7 +571,7 @@
               
               card.addEventListener('click', (e) => { 
                   if(e.target.closest('button')) return;
-                  openRunner(p); 
+                  openEditor(p); // Now opens editor directly with variables visible
               });
               
               card.querySelector('.btn-card-delete').addEventListener('click', (e) => { 
@@ -556,15 +579,26 @@
                   deletePrompt(p.id); 
               });
 
+              // Quick Insert from Card (Uses stored variables)
               const btnInsert = card.querySelector('.btn-quick-insert');
               btnInsert.addEventListener('click', (e) => {
                   e.stopPropagation();
-                  const compiled = compileText(p.content);
-                  insertToPage(compiled);
+                  // For quick insert, we use stored variables in the prompt object
+                  let text = p.content;
+                  const storedVars = p.variables || {};
                   
-                  // Visual Feedback logic preserved inside insertToPage mainly, 
-                  // but card buttons also need direct feedback sometimes.
-                  // Since insertToPage is async, we can do basic visual here:
+                  text = text.replace(/\{\{(.*?)\}\}/g, (match, content) => {
+                      const varName = content.trim();
+                      // 1. Stored Local
+                      if (storedVars[varName]) return storedVars[varName];
+                      // 2. Global
+                      const gVar = globalVars.find(g => g.name === varName);
+                      if (gVar) return gVar.value;
+                      return match;
+                  });
+                  
+                  insertToPage(text);
+                  
                   const originalHtml = btnInsert.innerHTML;
                   btnInsert.textContent = "✓";
                   btnInsert.style.backgroundColor = "#dcedc8";
@@ -581,9 +615,19 @@
               const btnCopy = card.querySelector('.btn-quick-copy');
               btnCopy.addEventListener('click', async (e) => {
                   e.stopPropagation();
-                  const compiled = compileText(p.content);
+                  // Copy logic also needs to respect stored variables
+                  let text = p.content;
+                  const storedVars = p.variables || {};
+                  text = text.replace(/\{\{(.*?)\}\}/g, (match, content) => {
+                      const varName = content.trim();
+                      if (storedVars[varName]) return storedVars[varName];
+                      const gVar = globalVars.find(g => g.name === varName);
+                      if (gVar) return gVar.value;
+                      return match;
+                  });
+                  
                   try {
-                      await navigator.clipboard.writeText(compiled);
+                      await navigator.clipboard.writeText(text);
                       const originalHtml = btnCopy.innerHTML;
                       btnCopy.textContent = "✓";
                       btnCopy.style.background = "#dcedc8";
@@ -591,7 +635,7 @@
                           btnCopy.innerHTML = originalHtml;
                           btnCopy.style.background = "";
                       }, 1000);
-                      showToast(t('copied'), 'success'); // Replaced alert
+                      showToast(t('copied'), 'success');
                   } catch(err) { showToast("Failed to copy", 'error'); }
               });
 
@@ -606,24 +650,21 @@
       editContent.value = prompt ? prompt.content : '';
       editTags.value = prompt ? prompt.tags.join(', ') : '';
       
+      // Load stored variables for this prompt
+      currentPromptVars = (prompt && prompt.variables) ? {...prompt.variables} : {};
+      
       const modeText = prompt ? 'editMode' : 'newPrompt';
       document.getElementById('editor-title-display').textContent = t(modeText);
       
-      runnerSection.classList.add('hidden');
+      // Always show runner section (Variables) in editor now
+      runnerSection.classList.remove('hidden');
+      
       mainView.classList.add('hidden'); settingsView.classList.add('hidden'); editorView.classList.remove('hidden');
       renderInsertVarOptions();
+      updateVariableInputs(editContent.value);
   }
 
-  function openRunner(prompt) {
-      currentPromptId = prompt.id;
-      editTitle.value = prompt.title; editContent.value = prompt.content; editTags.value = prompt.tags.join(', ');
-      document.getElementById('editor-title-display').textContent = t('executeMode');
-      runnerSection.classList.remove('hidden');
-      mainView.classList.add('hidden'); settingsView.classList.add('hidden'); editorView.classList.remove('hidden');
-      updateVariableInputs(prompt.content);
-  }
-
-  function closeEditor() { mainView.classList.remove('hidden'); editorView.classList.add('hidden'); currentPromptId = null; loadData(); }
+  function closeEditor() { mainView.classList.remove('hidden'); editorView.classList.add('hidden'); currentPromptId = null; currentPromptVars = {}; loadData(); }
   
   function openSettings() { 
       mainView.classList.add('hidden'); editorView.classList.add('hidden'); settingsView.classList.remove('hidden'); 
@@ -633,12 +674,10 @@
   function closeSettings() { mainView.classList.remove('hidden'); settingsView.classList.add('hidden'); }
 
   function extractVariables(text) { const regex = /\{\{(.*?)\}\}/g; const s = new Set(); let m; while(m=regex.exec(text)) s.add(m[1].trim()); return Array.from(s); }
-  function compilePrompt() { let c = editContent.value; document.querySelectorAll('.variable-input').forEach(i => c = c.split(`{{${i.dataset.var}}}`).join(i.value)); return c; }
   
   async function copyToClipboard() {
       try { 
-          await navigator.clipboard.writeText(compilePrompt()); 
-          // Button feedback
+          await navigator.clipboard.writeText(compileText(editContent.value)); 
           const txt = btnCopy.textContent; 
           btnCopy.textContent = t('copied'); 
           btnCopy.style.background = '#333'; 
@@ -650,13 +689,19 @@
   
   async function savePrompt() {
       const title = editTitle.value.trim(); 
-      if(!title) return showToast(t('errorTitle'), 'error'); // Replaced Alert
+      if(!title) return showToast(t('errorTitle'), 'error');
+      
+      // Capture current variables from UI
+      document.querySelectorAll('.variable-input').forEach(i => {
+          if (i.value) currentPromptVars[i.dataset.var] = i.value;
+      });
       
       const p = { 
           id: currentPromptId, 
           title, 
           content: editContent.value, 
           tags: editTags.value.split(',').map(t => t.trim()).filter(t => t), 
+          variables: currentPromptVars, // SAVE VARIABLES HERE
           lastUpdated: new Date().toISOString() 
       };
       
@@ -666,7 +711,6 @@
       
       await chrome.storage.local.set({ prompts });
       
-      // UX Feedback
       btnSave.textContent = t('saved'); 
       btnSave.style.backgroundColor = '#333';
       btnSave.disabled = true;
@@ -683,7 +727,7 @@
   }
 
   async function deletePrompt(id) { 
-      if(await showConfirm(t('confirmDelete'))) { // Replaced confirm
+      if(await showConfirm(t('confirmDelete'))) {
           prompts=prompts.filter(p=>p.id!==id); 
           await chrome.storage.local.set({prompts}); 
           loadData(); 
@@ -713,7 +757,7 @@
               const newVars = data.globalVars || [];
               const importedLang = data.lang;
 
-              if(await showConfirm(t('importConfirm'))) { // Replaced confirm
+              if(await showConfirm(t('importConfirm'))) {
                   const pMap = new Map(prompts.map(p => [p.id, p]));
                   newPrompts.forEach(p => pMap.set(p.id, p));
                   prompts = Array.from(pMap.values());
@@ -724,23 +768,23 @@
                   });
                   globalVars = Array.from(vMap.values());
                   
-                  if (importedLang && translations[importedLang]) {
+                  if (importedLang && window.promptManagerLocales[importedLang]) {
                       currentLang = importedLang;
                       await chrome.storage.local.set({ lang: currentLang });
                   }
 
                   await chrome.storage.local.set({ prompts, globalVars });
                   loadData(); 
-                  showToast(t('importSuccess'), 'success'); // Replaced Alert
+                  showToast(t('importSuccess'), 'success');
                   closeSettings();
               }
-          } catch (err) { showToast(t('fileError'), 'error'); } // Replaced Alert
+          } catch (err) { showToast(t('fileError'), 'error'); }
       };
       reader.readAsText(file);
       event.target.value = '';
   }
   async function clearAllData() { 
-      if(await showConfirm(t('confirmClear'))){ // Replaced confirm
+      if(await showConfirm(t('confirmClear'))){
           prompts=[]; globalVars=[]; await chrome.storage.local.set({prompts, globalVars}); 
           loadData(); 
           showToast('All Data Cleared', 'info');
