@@ -1,4 +1,4 @@
-
+<p align="center"><img src="https://github.com/spboxer3/Prompt-Manager/blob/main/icons/icon128.png"></p>
 <h1 align="center">Prompt Manager</h1>
 
 <p align="center">English|<a href="https://github.com/spboxer3/Prompt-Manager/blob/main/README.zh-TW.md">繁體中文</a></p>
