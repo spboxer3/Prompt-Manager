@@ -78,7 +78,7 @@ Use the Side Panel to manage your library. Open it via the gear icon in Spotligh
 
 
 - **Language**: Switch interface language in the Side Panel Settings.
-- **Shortcuts**: Customize the activation shortcut in `chrome://extensions/shortcuts` (Default: `Alt+J`).
+- **Shortcuts**: Customize the activation shortcut in `chrome://extensions/shortcuts` (Default: `Alt+P`).
 
 
 ## 🔒 Privacy Policy
