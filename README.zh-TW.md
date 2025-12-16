@@ -1,6 +1,7 @@
-# Prompt Manager (專業提示詞管理器)
+<p align="center"><img src="https://github.com/spboxer3/Prompt-Manager/blob/main/icons/icon128.png"></p>
+<h1 align="center">Prompt Manager (專業提示詞管理器)</h1>
 
-
+<p align="center"><a href="https://github.com/spboxer3/Prompt-Manager/blob/main/README.md">English</a> | 繁體中文</p>
 **Prompt Manager** 是一款專為 Prompt Engineering 設計的專業級 Google Chrome 擴充功能。採用最新的 **Manifest V3** 標準，結合了用於管理的 **Side Panel (側邊欄)** 與用於快速執行的 **Spotlight (懸浮視窗)**，提供跨平台（ChatGPT, Claude, Gemini 等）一致且高效的 AI 工作流體驗。
 
 
@@ -14,8 +15,8 @@
   - 支援快速搜尋、變數填寫，並直接將內容「插入」網頁對話框。
 - **Side Panel 管理器**：專屬的後台介面，用於新增、編輯與分類您的 Prompt 庫。
 - **智慧變數系統**：
-  - **全域變數 (Global)**：在設定中定義固定的數值（如 `{{稱謂}}`, `{{輸出格式}}`），一次設定，自動填入。
-  - **手動變數 (Manual)**：在 Prompt 中使用如 `{{主題}}` 的動態佔位符。執行時，系統會自動產生輸入框供您當場填寫。
+  - **全域變數 (Global)**：在設定中以英文定義固定的數值（如 `{{tone}}`, `{{topic}}`），一次設定，自動填入。
+  - **手動變數 (Manual)**：在 Prompt 中使用如 `{{topic}}` 的動態佔位符。執行時，系統會自動產生輸入框供您當場填寫。
 - **一鍵插入**：無論是在 Side Panel 還是 Spotlight，編譯完成後點擊按鈕即可將內容輸入至網頁。
 - **資料備份**：支援完整的 JSON 匯入/匯出功能（檔名包含時間戳記），方便備份或轉移。
 - **多語言支援**：內建繁體中文、英文、日文、韓文、西班牙文與葡萄牙文。
@@ -58,10 +59,10 @@
 
 
 - **建立 Prompt**：點擊 `+` 按鈕。
-  - 語法範例：`請以 {{語氣}} 的風格，寫一篇關於 {{主題}} 的文章。`
+  - 語法範例：`請以 {{tone}} 的風格，寫一篇關於 {{topic}} 的文章。`
 - **設定全域變數**：前往 **設定** > **全域變數管理**。
-  - 例如設定 `語氣` = `專業`。
-  - 以後 Prompt 中的 `{{語氣}}` 都會自動被替換為 `專業`。
+  - 例如設定 `tone` = `專業`。
+  - 以後 Prompt 中的 `{{tone}}` 都會自動被替換為 `專業`。
 - **備份**：在設定頁面中可匯出或匯入 JSON 資料。
 
 
@@ -76,7 +77,7 @@
 
 
 - **語言**：可在 Side Panel 設定頁面切換介面語言。
-- **快捷鍵**：可在 `chrome://extensions/shortcuts` 中自定義開啟 Spotlight 的快捷鍵（預設為 `Alt+J`）。
+- **快捷鍵**：可在 `chrome://extensions/shortcuts` 中自定義開啟 Spotlight 的快捷鍵（預設為 `Alt+P`）。
 
 
 ## 🔒 隱私權政策
@@ -89,6 +90,7 @@ Prompt Manager 完全在您的瀏覽器**離線**運行。
 - **無雲端儲存**：您的資料永遠儲存在您的裝置上。
 - **權限使用**：我們僅在您主動操作時，使用 `activeTab` 與 `scripting` 權限將文字填入您當前瀏覽的網頁。
 
+詳情請見<a href="https://github.com/spboxer3/Prompt-Manager/blob/main/PrivacyPolicy.zh-TW.md">隱私權政策</a>
 
 ## 📄 授權
 

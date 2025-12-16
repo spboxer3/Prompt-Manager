@@ -1,5 +1,7 @@
-# Prompt Manager
+<p align="center"><img src="https://github.com/spboxer3/Prompt-Manager/blob/main/icons/icon128.png"></p>
+<h1 align="center">Prompt Manager</h1>
 
+<p align="center">English|<a href="https://github.com/spboxer3/Prompt-Manager/blob/main/README.zh-TW.md">繁體中文</a></p>
 
 **Prompt Manager** is a professional-grade Google Chrome Extension designed for efficient Prompt Engineering. Built on the **Manifest V3** standard, it combines a **Side Panel** for management and a **Spotlight Overlay** for rapid execution, ensuring a seamless workflow across any AI platform (ChatGPT, Claude, Gemini, etc.).
 
@@ -76,7 +78,7 @@ Use the Side Panel to manage your library. Open it via the gear icon in Spotligh
 
 
 - **Language**: Switch interface language in the Side Panel Settings.
-- **Shortcuts**: Customize the activation shortcut in `chrome://extensions/shortcuts` (Default: `Alt+J`).
+- **Shortcuts**: Customize the activation shortcut in `chrome://extensions/shortcuts` (Default: `Alt+P`).
 
 
 ## 🔒 Privacy Policy
@@ -89,6 +91,7 @@ Prompt Manager operates entirely **offline** within your browser.
 - **No Cloud Storage**: Your prompts never leave your device unless you manually export them.
 - **Permissions**: We use `activeTab` and `scripting` solely to inject the text you selected into the page you are currently viewing.
 
+For details, please see our <a href="https://github.com/spboxer3/Prompt-Manager/blob/main/PrivacyPolicy.md">Privacy Policy</a>
 
 ## 📄 License
 
