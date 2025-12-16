@@ -1,0 +1,30 @@
+﻿{
+	"manifest_version": 3,
+	"name": "Prompt Manager - Save Your AI Prompts Locally",
+	"version": "1.0.0",
+	"description": "Boost your AI workflow! Save your favorite prompts locally and insert them with one click. Secure, fast, and offline.",
+	"permissions": ["sidePanel", "storage", "activeTab", "scripting"],
+	"background": {
+		"service_worker": "background.js"
+	},
+	"action": {
+		"default_title": "Open Prompt Manager"
+	},
+	"side_panel": {
+		"default_path": "sidepanel.html"
+	},
+	"commands": {
+		"_execute_action": {
+			"suggested_key": {
+				"default": "Alt+P",
+				"mac": "Alt+P"
+			},
+			"description": "Open Prompt Spotlight"
+		}
+	},
+	"icons": {
+		"16": "icons/icon16.png",
+		"48": "icons/icon48.png",
+		"128": "icons/icon128.png"
+	}
+}

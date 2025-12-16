@@ -1,0 +1,208 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Manager</title>
+    <link rel="stylesheet" href="sidepanel.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header outline-bottom">
+            <div class="logo" data-i18n="appTitle">Prompt Manager</div>
+            <div class="actions">
+                <button id="btn-add" class="btn-icon" title="New">+</button>
+                <button id="btn-settings" class="btn-icon" title="Settings">⚙</button>
+            </div>
+        </header>
+
+        <!-- Search & Filter Area -->
+        <div class="filter-section outline-bottom">
+            <div class="search-bar">
+                <input type="text" id="search-input" data-i18n-placeholder="searchPlaceholder"
+                    placeholder="Search..." />
+            </div>
+            <div id="tag-filters" class="tag-filters hidden"></div>
+        </div>
+
+        <!-- Main Content Area -->
+        <main id="main-view" class="content-area">
+            <div id="prompt-list" class="prompt-list"></div>
+
+            <!-- Removed emoji icon -->
+            <div id="empty-state" class="empty-state hidden">
+                <p data-i18n="noData">No Data</p>
+                <button id="btn-create-first" class="btn-outline" data-i18n="createFirst">Create first Prompt</button>
+            </div>
+        </main>
+
+        <!-- Editor / Runner View (Overlay) -->
+        <div id="editor-view" class="overlay hidden">
+            <div class="overlay-header outline-bottom">
+                <div class="row">
+                    <button id="btn-back" class="btn-text" data-i18n="back">&lt; Back</button>
+                </div>
+                <span id="editor-title-display" class="view-title">Mode</span>
+                <div class="row">
+                    <button id="btn-delete" class="btn-danger hidden" data-i18n="delete">Delete</button>
+                    <button id="btn-save" class="btn-solid" data-i18n="save">Save</button>
+                </div>
+            </div>
+
+            <div class="editor-body">
+                <div class="form-group">
+                    <label data-i18n="titleLabel">Title</label>
+                    <input type="text" id="edit-title" class="input-outline" data-i18n-placeholder="titlePlaceholder">
+                </div>
+
+                <div class="form-group">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                        <label style="margin-bottom: 0;" data-i18n="contentLabel">Content</label>
+                        <select id="insert-var-select" class="input-outline"
+                            style="width: auto; padding: 2px 6px; font-size: 11px; height: 24px; cursor: pointer; border-color: #ccc;">
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+                    <textarea id="edit-content" class="textarea-outline"
+                        data-i18n-placeholder="contentPlaceholder"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label data-i18n="tagsLabel">Tags</label>
+                    <input type="text" id="edit-tags" class="input-outline" data-i18n-placeholder="tagsPlaceholder">
+                </div>
+
+                <!-- Variable Runner Section -->
+                <div id="runner-section" class="runner-section hidden outline-top">
+                    <div class="row" style="justify-content: space-between; margin-bottom: 10px;">
+                        <h3 class="section-title" style="margin:0" data-i18n="varFilling">Variables</h3>
+                        <button id="btn-refresh-vars" class="btn-text" style="font-size:12px"
+                            data-i18n="reScan">Re-scan</button>
+                    </div>
+
+                    <div id="variables-container"></div>
+
+                    <div class="runner-actions">
+                        <!-- Insert Button now Black (#000) -->
+                        <button id="btn-insert" class="btn-solid w-full"
+                            style="background-color: #000; border-color: #000; margin-bottom: 8px;"
+                            data-i18n="btnInsert">
+                            Insert
+                        </button>
+                        <button id="btn-copy" class="btn-outline w-full" data-i18n="btnCopy">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings View (Overlay) -->
+        <div id="settings-view" class="overlay hidden">
+            <div class="overlay-header outline-bottom">
+                <button id="btn-close-settings" class="btn-text" data-i18n="back">&lt; Back</button>
+                <span class="view-title" data-i18n="settingsTitle">Settings</span>
+                <!-- Help Button Moved Here -->
+                <button id="btn-open-help" class="btn-icon">?</button>
+            </div>
+            <div class="editor-body">
+
+                <div class="settings-section">
+                    <div class="form-group">
+                        <label data-i18n="languageLabel">Language</label>
+                        <select id="language-select" class="input-outline w-full">
+                            <option value="en">English</option>
+                            <option value="zh_TW">繁體中文</option>
+                            <option value="ja">日本語</option>
+                            <option value="ko">한국어</option>
+                            <option value="es">Español</option>
+                            <option value="pt">Português</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="settings-section outline-top" style="padding-top: 20px;">
+                    <h3 class="section-title" data-i18n="globalVarTitle">Global Vars</h3>
+                    <p class="help-text" data-i18n="globalVarHelp">Description</p>
+                    <div id="global-vars-list"></div>
+                    <button id="btn-show-add-var" class="btn-dashed w-full" style="margin-top: 10px;"
+                        data-i18n="addVarBtn">+ Add</button>
+
+                    <div id="variable-form-container" class="hidden outline-top"
+                        style="margin-top: 15px; padding-top: 15px; background: #f9f9f9; padding: 10px; border: 1px solid #eee;">
+                        <h4 id="var-form-title" style="margin-top:0; font-size:13px; margin-bottom:10px;"
+                            data-i18n="varFormAdd">Add</h4>
+                        <div class="form-group">
+                            <label data-i18n="varNameLabel">Name</label>
+                            <input type="text" id="new-var-name" class="input-outline" placeholder="name">
+                        </div>
+                        <div class="form-group">
+                            <label data-i18n="varValueLabel">Value</label>
+                            <textarea id="new-var-value" class="input-outline" placeholder="value"
+                                style="min-height: 60px;"></textarea>
+                        </div>
+                        <div class="row">
+                            <button id="btn-cancel-var" class="btn-outline w-full" data-i18n="cancel">Cancel</button>
+                            <button id="btn-save-var" class="btn-solid w-full" data-i18n="save">Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-section outline-top" style="padding-top: 20px;">
+                    <h3 class="section-title" data-i18n="dataMgmtTitle">Data</h3>
+                    <div class="row">
+                        <button id="btn-export" class="btn-outline w-full" data-i18n="exportBtn">Export</button>
+                        <label for="file-import" class="btn-outline w-full text-center cursor-pointer"
+                            data-i18n="importLabel">Import</label>
+                        <input type="file" id="file-import" accept=".json" class="hidden">
+                    </div>
+                </div>
+
+                <div class="settings-section outline-top" style="padding-top: 20px;">
+                    <h3 class="section-title" data-i18n="aboutTitle">About</h3>
+                    <p class="help-text">Prompt Manager v1.0.0 by <a href="https://github.com/spboxer3/" target="_blank">Roland Chien</a></p>
+                    <a href="#" id="btn-clear-all" class="text-danger"
+                        style="font-size: 12px; margin-top: 10px; display:block;" data-i18n="clearAllBtn">Clear All</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help View (Overlay) -->
+        <div id="help-view" class="overlay hidden">
+            <div class="overlay-header outline-bottom">
+                <button id="btn-close-help" class="btn-text" data-i18n="back">&lt; Back</button>
+                <span class="view-title" data-i18n="helpTitle">Guide</span>
+                <div style="width: 24px;"></div>
+            </div>
+            <div class="editor-body">
+                <div class="settings-section">
+                    <h3 class="section-title" data-i18n="helpTitle">Guide</h3>
+                    <p class="help-text" data-i18n="helpDesc">Description</p>
+                </div>
+                <div class="settings-section">
+                    <h4 style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;"
+                        data-i18n="helpGlobalTitle">1. Global</h4>
+                    <p class="help-text" data-i18n="helpGlobalText">Text</p>
+                </div>
+                <div class="settings-section">
+                    <h4 style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;"
+                        data-i18n="helpManualTitle">2. Manual</h4>
+                    <p class="help-text" data-i18n="helpManualText">Text</p>
+                </div>
+                <div class="settings-section">
+                    <h4 style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;"
+                        data-i18n="helpInsertTitle">Insert</h4>
+                    <p class="help-text" data-i18n="helpInsertText">Text</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Locales First -->
+    <script src="locales.js"></script>
+    <script src="sidepanel.js"></script>
+</body>
+
+</html>
