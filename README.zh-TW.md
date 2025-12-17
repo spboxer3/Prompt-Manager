@@ -2,6 +2,7 @@
 <h1 align="center">Prompt Manager (專業提示詞管理器)</h1>
 
 <p align="center"><a href="https://github.com/spboxer3/Prompt-Manager/blob/main/README.md">English</a> | 繁體中文</p>
+
 **Prompt Manager** 是一款專為 Prompt Engineering 設計的專業級 Google Chrome 擴充功能。採用最新的 **Manifest V3** 標準，結合了用於管理的 **Side Panel (側邊欄)** 與用於快速執行的 **Spotlight (懸浮視窗)**，提供跨平台（ChatGPT, Claude, Gemini 等）一致且高效的 AI 工作流體驗。
 
 
