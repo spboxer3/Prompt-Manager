@@ -1,19 +1,26 @@
-﻿(function() {
-  if (window.hasRunpromptManagerSpotlight) { return; }
+﻿(function () {
+  if (window.hasRunpromptManagerSpotlight) {
+    return;
+  }
   window.hasRunpromptManagerSpotlight = true;
   window.promptManager = window.promptManager || {};
-  
-  let prompts = [], globalVars = [], activeIndex = 0, filteredPrompts = [], currentLang = 'en'; 
+
+  let prompts = [],
+    globalVars = [],
+    activeIndex = 0,
+    filteredPrompts = [],
+    currentLang = "en";
   // 新增狀態：是否正在填寫變數模式
   let isVarMode = false;
   let currentPendingPrompt = null; // 暫存等待填寫的 Prompt
   let manualVars = []; // 需要填寫的變數列表
 
   function t(key) {
-      const locales = window.promptManagerLocales;
-      if (!locales) return key;
-      if (locales[currentLang] && locales[currentLang][key]) return locales[currentLang][key];
-      return locales['en'][key] || key; 
+    const locales = window.promptManagerLocales;
+    if (!locales) return key;
+    if (locales[currentLang] && locales[currentLang][key])
+      return locales[currentLang][key];
+    return locales["en"][key] || key;
   }
 
   const cssStyles = `
@@ -37,6 +44,8 @@
     .item-content { flex: 1; min-width: 0; }
     .item-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .item-preview { font-size: 12px; color: #888; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-tags { margin-top: 4px; display: flex; gap: 4px; overflow: hidden; }
+    .item-tag { font-size: 10px; color: #555; background: #eee; padding: 2px 6px; border-radius: 4px; white-space: nowrap; }
     
     /* Variable Form View */
     #var-form { padding: 16px; max-height: 400px; overflow-y: auto; background: #fff; display: none; }
@@ -61,25 +70,39 @@
     .hidden { display: none !important; }
   `;
 
-  const host = document.createElement('div'); host.id = 'promptManager-host'; document.documentElement.appendChild(host);
-  const shadow = host.attachShadow({ mode: 'open' });
-  const styleEl = document.createElement('style'); styleEl.textContent = cssStyles; shadow.appendChild(styleEl);
-  const overlay = document.createElement('div'); overlay.id = 'overlay'; shadow.appendChild(overlay);
+  const host = document.createElement("div");
+  host.id = "promptManager-host";
+  document.documentElement.appendChild(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const styleEl = document.createElement("style");
+  styleEl.textContent = cssStyles;
+  shadow.appendChild(styleEl);
+  const overlay = document.createElement("div");
+  overlay.id = "overlay";
+  shadow.appendChild(overlay);
 
   let card, header, input, list, varForm, settingsBtn, footer;
-  let isDragging = false, dragStartX, dragStartY, initialLeft, initialTop;
+  let isDragging = false,
+    dragStartX,
+    dragStartY,
+    initialLeft,
+    initialTop;
 
   async function init() {
     attachGlobalListeners();
   }
 
   function renderUI() {
-      overlay.innerHTML = `
+    overlay.innerHTML = `
         <div id="card">
           <div class="header">
             <span class="search-icon">🔍</span>
-            <input type="text" class="main-search" placeholder="${t('spotlightSearchPlaceholder')}" autocomplete="off">
-            <button class="settings-btn" title="${t('spotlightSettings')}"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
+            <input type="text" class="main-search" placeholder="${t(
+              "spotlightSearchPlaceholder"
+            )}" autocomplete="off">
+            <button class="settings-btn" title="${t(
+              "spotlightSettings"
+            )}"><svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button>
           </div>
           
           <ul id="list"></ul>
@@ -87,335 +110,406 @@
           <div id="var-form"></div>
 
           <div class="footer">
-            <span id="footer-nav"><span class="key">↑</span> <span class="key">↓</span> ${t('spotlightNavigate')}</span>
-            <span><span class="key">↵</span> <span id="footer-action">${t('spotlightInsert')}</span></span>
-            <span><span class="key">Esc</span> ${t('spotlightClose')}</span>
+            <span id="footer-nav"><span class="key">↑</span> <span class="key">↓</span> ${t(
+              "spotlightNavigate"
+            )}</span>
+            <span><span class="key">↵</span> <span id="footer-action">${t(
+              "spotlightInsert"
+            )}</span></span>
+            <span><span class="key">Esc</span> ${t("spotlightClose")}</span>
           </div>
           <div class="toast-container"></div>
         </div>
       `;
-      
-      card = shadow.getElementById('card'); 
-      header = shadow.querySelector('.header'); 
-      input = shadow.querySelector('input.main-search'); 
-      list = shadow.querySelector('ul'); 
-      varForm = shadow.getElementById('var-form');
-      settingsBtn = shadow.querySelector('.settings-btn');
-      footer = shadow.querySelector('.footer');
+
+    card = shadow.getElementById("card");
+    header = shadow.querySelector(".header");
+    input = shadow.querySelector("input.main-search");
+    list = shadow.querySelector("ul");
+    varForm = shadow.getElementById("var-form");
+    settingsBtn = shadow.querySelector(".settings-btn");
+    footer = shadow.querySelector(".footer");
   }
 
-  function showToast(msg, type='info') {
-      const container = shadow.querySelector('.toast-container');
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = msg;
-      container.appendChild(toast);
-      requestAnimationFrame(() => toast.classList.add('visible'));
-      setTimeout(() => { toast.classList.remove('visible'); setTimeout(() => toast.remove(), 300); }, 3000);
+  function showToast(msg, type = "info") {
+    const container = shadow.querySelector(".toast-container");
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add("visible"));
+    setTimeout(() => {
+      toast.classList.remove("visible");
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
   }
 
   function attachElementListeners() {
-      // Header Dragging
-      header.addEventListener('mousedown', (e) => { 
-          if (e.target === input || e.composedPath().includes(settingsBtn)) return; 
-          if (e.button !== 0) return; 
-          isDragging = true; 
-          dragStartX = e.clientX; 
-          dragStartY = e.clientY; 
-          const rect = card.getBoundingClientRect(); 
-          initialLeft = rect.left; 
-          initialTop = rect.top; 
-          card.style.transform = 'none'; 
-          card.style.left = `${initialLeft}px`; 
-          card.style.top = `${initialTop}px`; 
-          card.style.right = 'auto'; 
-          e.preventDefault(); 
-      });
+    // Header Dragging
+    header.addEventListener("mousedown", (e) => {
+      if (e.target === input || e.composedPath().includes(settingsBtn)) return;
+      if (e.button !== 0) return;
+      isDragging = true;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      const rect = card.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+      card.style.transform = "none";
+      card.style.left = `${initialLeft}px`;
+      card.style.top = `${initialTop}px`;
+      card.style.right = "auto";
+      e.preventDefault();
+    });
 
-      overlay.addEventListener('click', (e) => { 
-          if (e.composedPath().includes(card)) return; 
-          closeSpotlight(); 
-      });
-      
-      settingsBtn.addEventListener('click', (e) => { 
-          e.stopPropagation(); 
-          chrome.runtime.sendMessage({ action: "OPEN_SIDEPANEL" }); 
-          closeSpotlight(); 
-      });
-      
-      // Main Input Logic
-      input.addEventListener('input', () => { 
-          activeIndex = 0; 
-          renderList(input.value); 
-      });
-      
-      input.addEventListener('keydown', (e) => { 
-          if (isVarMode) return; // Ignore main input keys if in var mode (though input should be hidden)
+    overlay.addEventListener("click", (e) => {
+      if (e.composedPath().includes(card)) return;
+      closeSpotlight();
+    });
 
-          if (e.key === 'ArrowDown') { 
-              e.preventDefault(); 
-              activeIndex = Math.min(activeIndex + 1, filteredPrompts.length - 1); 
-              updateActiveItem(); 
-          } else if (e.key === 'ArrowUp') { 
-              e.preventDefault(); 
-              activeIndex = Math.max(activeIndex - 1, 0); 
-              updateActiveItem(); 
-          } else if (e.key === 'Enter') { 
-              e.preventDefault(); 
-              if(filteredPrompts.length > 0) prepareInsertion(filteredPrompts[activeIndex]); 
-          } else if (e.key === 'Escape') {
-              closeSpotlight(); 
-          }
-      });
+    settingsBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      chrome.runtime.sendMessage({ action: "OPEN_SIDEPANEL" });
+      closeSpotlight();
+    });
+
+    // Main Input Logic
+    input.addEventListener("input", () => {
+      activeIndex = 0;
+      renderList(input.value);
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (isVarMode) return; // Ignore main input keys if in var mode (though input should be hidden)
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, filteredPrompts.length - 1);
+        updateActiveItem();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        updateActiveItem();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (filteredPrompts.length > 0)
+          prepareInsertion(filteredPrompts[activeIndex]);
+      } else if (e.key === "Escape") {
+        closeSpotlight();
+      }
+    });
   }
 
   function attachGlobalListeners() {
-      window.addEventListener('mousemove', (e) => { 
-          if (!isDragging) return; 
-          const dx = e.clientX - dragStartX; 
-          const dy = e.clientY - dragStartY; 
-          card.style.left = `${initialLeft + dx}px`; 
-          card.style.top = `${initialTop + dy}px`; 
-      });
-      window.addEventListener('mouseup', () => { isDragging = false; });
-      
-      // Global Escape
-      document.addEventListener('keydown', (e) => { 
-          if (e.key === 'Escape' && overlay.style.display === 'block') {
-              if (isVarMode) {
-                  // Back to list
-                  exitVarMode();
-              } else {
-                  closeSpotlight(); 
-              }
-          }
-      });
-      
-      chrome.runtime.onMessage.addListener((msg) => { 
-          if (msg.action === "TOGGLE_SPOTLIGHT") toggleSpotlight(); 
-      });
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      card.style.left = `${initialLeft + dx}px`;
+      card.style.top = `${initialTop + dy}px`;
+    });
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    // Global Escape
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && overlay.style.display === "block") {
+        if (isVarMode) {
+          // Back to list
+          exitVarMode();
+        } else {
+          closeSpotlight();
+        }
+      }
+    });
+
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg.action === "TOGGLE_SPOTLIGHT") toggleSpotlight();
+    });
   }
 
   function renderList(query) {
-    list.innerHTML = ''; const q = query.toLowerCase();
-    
+    list.innerHTML = "";
+    const q = query.toLowerCase();
+
     // Add create button if empty
     if (prompts.length === 0) {
-        list.innerHTML = `<li class="create-first-btn">+ ${t('spotlightCreateFirst')}</li>`;
-        list.querySelector('.create-first-btn').addEventListener('click', async () => { await chrome.storage.local.set({ openInCreateMode: true }); chrome.runtime.sendMessage({ action: "OPEN_SIDEPANEL" }); closeSpotlight(); });
-        return;
+      list.innerHTML = `<li class="create-first-btn">+ ${t(
+        "spotlightCreateFirst"
+      )}</li>`;
+      list
+        .querySelector(".create-first-btn")
+        .addEventListener("click", async () => {
+          await chrome.storage.local.set({ openInCreateMode: true });
+          chrome.runtime.sendMessage({ action: "OPEN_SIDEPANEL" });
+          closeSpotlight();
+        });
+      return;
     }
 
-    filteredPrompts = prompts.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q) || p.tags.some(t => t.toLowerCase().includes(q)));
-    
-    if (filteredPrompts.length === 0) { 
-        list.innerHTML = `<li style="padding:12px; color:#999; text-align:center;">${t('spotlightNoMatch')}</li>`; 
-        return; 
+    filteredPrompts = prompts.filter(
+      (p) =>
+        p.title.toLowerCase().includes(q) ||
+        p.content.toLowerCase().includes(q) ||
+        (p.tags || []).some((t) => t.toLowerCase().includes(q))
+    );
+
+    if (filteredPrompts.length === 0) {
+      list.innerHTML = `<li style="padding:12px; color:#999; text-align:center;">${t(
+        "spotlightNoMatch"
+      )}</li>`;
+      return;
     }
-    
+
     filteredPrompts.forEach((p, index) => {
-      const li = document.createElement('li'); 
-      li.className = index === activeIndex ? 'active' : '';
-      li.innerHTML = `<div class="item-content"><div class="item-title">${escapeHtml(p.title)}</div><div class="item-preview">${escapeHtml(p.content)}</div></div>`;
-      li.addEventListener('click', () => prepareInsertion(p));
-      li.addEventListener('mouseenter', () => { activeIndex = index; updateActiveItem(); });
+      const li = document.createElement("li");
+      li.className = index === activeIndex ? "active" : "";
+      const tagsHtml =
+        p.tags && p.tags.length > 0
+          ? `<div class="item-tags">${p.tags
+              .map((t) => `<span class="item-tag">#${escapeHtml(t)}</span>`)
+              .join("")}</div>`
+          : "";
+      li.innerHTML = `<div class="item-content">
+                        <div class="item-title">${escapeHtml(p.title)}</div>
+                        <div class="item-preview">${escapeHtml(p.content)}</div>
+                        ${tagsHtml}
+                      </div>`;
+      li.addEventListener("click", () => prepareInsertion(p));
+      li.addEventListener("mouseenter", () => {
+        activeIndex = index;
+        updateActiveItem();
+      });
       list.appendChild(li);
     });
     updateActiveItem();
   }
 
-  function updateActiveItem() { 
-      const items = list.querySelectorAll('li'); 
-      if (items.length === 1 && items[0].classList.contains('create-first-btn')) return; 
-      items.forEach((item, idx) => { 
-          if (idx === activeIndex) { 
-              item.classList.add('active'); 
-              item.scrollIntoView({ block: 'nearest' }); 
-          } else {
-              item.classList.remove('active'); 
-          }
-      }); 
+  function updateActiveItem() {
+    const items = list.querySelectorAll("li");
+    if (items.length === 1 && items[0].classList.contains("create-first-btn"))
+      return;
+    items.forEach((item, idx) => {
+      if (idx === activeIndex) {
+        item.classList.add("active");
+        item.scrollIntoView({ block: "nearest" });
+      } else {
+        item.classList.remove("active");
+      }
+    });
   }
-  
-  function toggleSpotlight() { 
-      loadDataAndRender().then(() => { 
-          if (overlay.style.display === 'none' || overlay.style.display === '') { 
-              // Capture last focused element to restore later or insert into
-              if (document.activeElement && document.activeElement !== document.body && document.activeElement !== host) { 
-                  window.promptManager.lastFocused = document.activeElement; 
-              } 
-              overlay.style.display = 'block'; 
-              exitVarMode(); // Reset view
-              input.value = ''; 
-              input.focus(); 
-          } else { 
-              closeSpotlight(); 
-          } 
-      }); 
+
+  function toggleSpotlight() {
+    loadDataAndRender().then(() => {
+      if (overlay.style.display === "none" || overlay.style.display === "") {
+        // Capture last focused element to restore later or insert into
+        if (
+          document.activeElement &&
+          document.activeElement !== document.body &&
+          document.activeElement !== host
+        ) {
+          window.promptManager.lastFocused = document.activeElement;
+        }
+        overlay.style.display = "block";
+        exitVarMode(); // Reset view
+        input.value = "";
+        input.focus();
+      } else {
+        closeSpotlight();
+      }
+    });
   }
-  
-  function closeSpotlight() { 
-      overlay.style.display = 'none'; 
-      exitVarMode();
-      if (window.promptManager.lastFocused) { window.promptManager.lastFocused.focus(); } 
+
+  function closeSpotlight() {
+    overlay.style.display = "none";
+    exitVarMode();
+    if (window.promptManager.lastFocused) {
+      window.promptManager.lastFocused.focus();
+    }
   }
-  
-  async function loadDataAndRender() { 
-      const data = await chrome.storage.local.get(['prompts', 'globalVars', 'lang']); 
-      prompts = data.prompts || []; 
-      globalVars = data.globalVars || []; 
-      if (data.lang) currentLang = data.lang; 
-      
-      renderUI(); 
-      attachElementListeners(); 
-      activeIndex = 0; 
-      renderList(''); 
+
+  async function loadDataAndRender() {
+    const data = await chrome.storage.local.get([
+      "prompts",
+      "globalVars",
+      "lang",
+    ]);
+    prompts = data.prompts || [];
+    globalVars = data.globalVars || [];
+    if (data.lang) currentLang = data.lang;
+
+    renderUI();
+    attachElementListeners();
+    activeIndex = 0;
+    renderList("");
   }
 
   // --- Logic for Manual Variable Insertion ---
 
   function prepareInsertion(prompt) {
-      // 1. Check for manual variables (Regex: {{ varName }})
-      const regex = /\{\{(.*?)\}\}/g;
-      const vars = new Set();
-      let match;
-      
-      // Get stored local variables for this prompt
-      const storedVars = prompt.variables || {};
+    // 1. Check for manual variables (Regex: {{ varName }})
+    const regex = /\{\{(.*?)\}\}/g;
+    const vars = new Set();
+    let match;
 
-      while ((match = regex.exec(prompt.content)) !== null) {
-          const varName = match[1].trim();
-          
-          // Conditions to ask user for input:
-          // 1. Not defined in Global Variables AND
-          // 2. Not defined in Prompt's Stored Variables
-          const isGlobal = globalVars.some(gv => gv.name === varName);
-          const isStoredLocal = (storedVars[varName] !== undefined && storedVars[varName] !== "");
+    // Get stored local variables for this prompt
+    const storedVars = prompt.variables || {};
 
-          if (!isGlobal && !isStoredLocal) {
-              vars.add(varName);
-          }
+    while ((match = regex.exec(prompt.content)) !== null) {
+      const varName = match[1].trim();
+
+      // Conditions to ask user for input:
+      // 1. Not defined in Global Variables AND
+      // 2. Not defined in Prompt's Stored Variables
+      const isGlobal = globalVars.some((gv) => gv.name === varName);
+      const isStoredLocal =
+        storedVars[varName] !== undefined && storedVars[varName] !== "";
+
+      if (!isGlobal && !isStoredLocal) {
+        vars.add(varName);
       }
+    }
 
-      manualVars = Array.from(vars);
+    manualVars = Array.from(vars);
 
-      if (manualVars.length > 0) {
-          // If manual variables exist, enter Var Mode
-          currentPendingPrompt = prompt;
-          enterVarMode();
-      } else {
-          // If no manual variables needed, insert directly
-          executeInsertion(prompt.content, prompt.variables || {}, {});
-      }
+    if (manualVars.length > 0) {
+      // If manual variables exist, enter Var Mode
+      currentPendingPrompt = prompt;
+      enterVarMode();
+    } else {
+      // If no manual variables needed, insert directly
+      executeInsertion(prompt.content, prompt.variables || {}, {});
+    }
   }
 
   function enterVarMode() {
-      isVarMode = true;
-      list.style.display = 'none';
-      header.style.display = 'none'; // Hide search bar
-      varForm.style.display = 'block';
-      
-      // Update Footer
-      const footerNav = shadow.querySelector('#footer-nav');
-      if(footerNav) footerNav.style.display = 'none';
-      
-      // Render Form
-      varForm.innerHTML = `<div class="var-form-title">${t('varFilling')}</div>`;
-      
-      manualVars.forEach((v, index) => {
-          const group = document.createElement('div');
-          group.className = 'var-group';
-          group.innerHTML = `
+    isVarMode = true;
+    list.style.display = "none";
+    header.style.display = "none"; // Hide search bar
+    varForm.style.display = "block";
+
+    // Update Footer
+    const footerNav = shadow.querySelector("#footer-nav");
+    if (footerNav) footerNav.style.display = "none";
+
+    // Render Form
+    varForm.innerHTML = `<div class="var-form-title">${t("varFilling")}</div>`;
+
+    manualVars.forEach((v, index) => {
+      const group = document.createElement("div");
+      group.className = "var-group";
+      group.innerHTML = `
             <label class="var-label">${escapeHtml(v)}</label>
-            <input type="text" class="var-input" data-var="${escapeHtml(v)}" autocomplete="off">
+            <input type="text" class="var-input" data-var="${escapeHtml(
+              v
+            )}" autocomplete="off">
           `;
-          varForm.appendChild(group);
-      });
+      varForm.appendChild(group);
+    });
 
-      // Attach Form Listeners
-      const inputs = varForm.querySelectorAll('input');
-      if (inputs.length > 0) inputs[0].focus();
+    // Attach Form Listeners
+    const inputs = varForm.querySelectorAll("input");
+    if (inputs.length > 0) inputs[0].focus();
 
-      inputs.forEach((inp, idx) => {
-          inp.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (idx === inputs.length - 1) {
-                      // Submit
-                      submitVarForm();
-                  } else {
-                      // Next input
-                      inputs[idx + 1].focus();
-                  }
-              }
-          });
+    inputs.forEach((inp, idx) => {
+      inp.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          if (idx === inputs.length - 1) {
+            // Submit
+            submitVarForm();
+          } else {
+            // Next input
+            inputs[idx + 1].focus();
+          }
+        }
       });
+    });
   }
 
   function exitVarMode() {
-      isVarMode = false;
-      currentPendingPrompt = null;
-      manualVars = [];
-      
-      list.style.display = 'block';
-      header.style.display = 'flex';
-      varForm.style.display = 'none';
-      varForm.innerHTML = '';
-      
-      const footerNav = shadow.querySelector('#footer-nav');
-      if(footerNav) footerNav.style.display = 'inline';
-      
-      if(input) input.focus();
+    isVarMode = false;
+    currentPendingPrompt = null;
+    manualVars = [];
+
+    list.style.display = "block";
+    header.style.display = "flex";
+    varForm.style.display = "none";
+    varForm.innerHTML = "";
+
+    const footerNav = shadow.querySelector("#footer-nav");
+    if (footerNav) footerNav.style.display = "inline";
+
+    if (input) input.focus();
   }
 
   function submitVarForm() {
-      const inputs = varForm.querySelectorAll('input');
-      const values = {};
-      inputs.forEach(inp => {
-          values[inp.dataset.var] = inp.value;
-      });
-      
-      // Reconstruct content
-      executeInsertion(currentPendingPrompt.content, currentPendingPrompt.variables || {}, values);
+    const inputs = varForm.querySelectorAll("input");
+    const values = {};
+    inputs.forEach((inp) => {
+      values[inp.dataset.var] = inp.value;
+    });
+
+    // Reconstruct content
+    executeInsertion(
+      currentPendingPrompt.content,
+      currentPendingPrompt.variables || {},
+      values
+    );
   }
-  
+
   function executeInsertion(rawContent, storedLocalVars, manualValues) {
     let text = rawContent;
 
     text = text.replace(/\{\{(.*?)\}\}/g, (match, content) => {
-        const varName = content.trim();
-        const globalVar = globalVars.find(gv => gv.name === varName);
-        
-        // Priority: 
-        // 1. Manual Input (Just typed in Spotlight form)
-        // 2. Stored Local Variable (Saved in Sidepanel)
-        // 3. Global Variable (Settings)
-        
-        if (manualValues.hasOwnProperty(varName)) {
-            return manualValues[varName];
-        } else if (storedLocalVars.hasOwnProperty(varName) && storedLocalVars[varName] !== "") {
-            return storedLocalVars[varName];
-        } else if (globalVar) {
-            return globalVar.value;
-        } else {
-            return match; 
-        }
+      const varName = content.trim();
+      const globalVar = globalVars.find((gv) => gv.name === varName);
+
+      // Priority:
+      // 1. Manual Input (Just typed in Spotlight form)
+      // 2. Stored Local Variable (Saved in Sidepanel)
+      // 3. Global Variable (Settings)
+
+      if (manualValues.hasOwnProperty(varName)) {
+        return manualValues[varName];
+      } else if (
+        storedLocalVars.hasOwnProperty(varName) &&
+        storedLocalVars[varName] !== ""
+      ) {
+        return storedLocalVars[varName];
+      } else if (globalVar) {
+        return globalVar.value;
+      } else {
+        return match;
+      }
     });
 
     const target = window.promptManager.lastFocused;
-    if (!target) { showToast(t('spotlightNoFocus'), 'error'); return; }
+    if (!target) {
+      showToast(t("spotlightNoFocus"), "error");
+      return;
+    }
 
     try {
-        window.promptManager.insertText(text);
-        closeSpotlight(); // Close & Reset
+      window.promptManager.insertText(text);
+      closeSpotlight(); // Close & Reset
     } catch (e) {
-        console.error(e);
-        if (e.message === "no_target") showToast(t('spotlightNoFocus'), 'error');
-        else showToast(t('spotlightInsertFailed'), 'error');
+      console.error(e);
+      if (e.message === "no_target") showToast(t("spotlightNoFocus"), "error");
+      else showToast(t("spotlightInsertFailed"), "error");
     }
   }
-  
-  function escapeHtml(t) { return t ? t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;") : ''; }
-  
+
+  function escapeHtml(t) {
+    return t
+      ? t
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+      : "";
+  }
+
   init();
 })();
