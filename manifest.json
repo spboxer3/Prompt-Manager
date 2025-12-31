@@ -1,7 +1,7 @@
 ﻿{
   "manifest_version": 3,
   "name": "Prompt Manager - Save Your AI Prompts Locally",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Boost your AI workflow! Save your favorite prompts locally and insert them with one click. Secure, fast, and offline.",
   "permissions": ["sidePanel", "storage", "activeTab", "scripting"],
   "background": {
@@ -26,5 +26,14 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "sandbox": {
+    "pages": ["sandbox.html"]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["sandbox.html", "sandbox.js", "content.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

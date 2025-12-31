@@ -119,6 +119,9 @@
             <span><span class="key">Esc</span> ${t("spotlightClose")}</span>
           </div>
           <div class="toast-container"></div>
+          <iframe id="sandbox-frame" src="${chrome.runtime.getURL(
+            "sandbox.html"
+          )}" style="display:none;"></iframe>
         </div>
       `;
 
@@ -459,31 +462,114 @@
     );
   }
 
-  function executeInsertion(rawContent, storedLocalVars, manualValues) {
+  async function resolveVariableValue(variableDef) {
+    if (!variableDef) return "";
+    if (variableDef.type === "selector") {
+      // Direct DOM access since we are in Content Script
+      try {
+        const el = document.querySelector(variableDef.value);
+        if (!el) return "";
+        const attr = variableDef.attribute || "innerText";
+        if (attr === "innerText") return el.innerText || el.textContent;
+        else if (attr === "innerHTML") return el.innerHTML;
+        else if (attr === "value") return el.value;
+        else return el.getAttribute(attr) || "";
+      } catch (e) {
+        console.error(e);
+        return "";
+      }
+    } else if (variableDef.type === "script") {
+      const script = variableDef.script || variableDef.value;
+      if (!script) return "";
+
+      // Fetch Page Context for Spotlight (Title is easy, URL is tougher if not in extension context?)
+      // Since Spotlight is a content script (or overlay), it has direct access to window!
+      // We also pass the full HTML for DOM Parsing in Sandbox
+      let pageContext = {
+        title: document.title,
+        url: window.location.href,
+        html: document.documentElement.outerHTML,
+      };
+
+      return new Promise((resolve) => {
+        const iframe = shadow.getElementById("sandbox-frame");
+        if (!iframe) {
+          resolve("[Error: Sandbox missing]");
+          return;
+        }
+        const id = Math.random().toString();
+        const handler = (event) => {
+          if (event.data.id === id) {
+            window.removeEventListener("message", handler);
+            resolve(
+              event.data.error
+                ? `[Error: ${event.data.error}]`
+                : event.data.result
+            );
+          }
+        };
+        window.addEventListener("message", handler);
+        iframe.contentWindow.postMessage(
+          { action: "execute", code: script, context: pageContext, id },
+          "*"
+        );
+        setTimeout(() => {
+          window.removeEventListener("message", handler);
+          resolve("[Script Timeout]");
+        }, 2000);
+      });
+    } else {
+      return variableDef.value || "";
+    }
+  }
+
+  async function executeInsertion(rawContent, storedLocalVars, manualValues) {
     let text = rawContent;
 
-    text = text.replace(/\{\{(.*?)\}\}/g, (match, content) => {
-      const varName = content.trim();
-      const globalVar = globalVars.find((gv) => gv.name === varName);
+    const regex = /\{\{(.*?)\}\}/g;
+    let match;
+    const matches = [];
+    while ((match = regex.exec(text)) !== null) {
+      matches.push({
+        full: match[0],
+        content: match[1].trim(),
+        index: match.index,
+      });
+    }
 
-      // Priority:
-      // 1. Manual Input (Just typed in Spotlight form)
-      // 2. Stored Local Variable (Saved in Sidepanel)
-      // 3. Global Variable (Settings)
+    const replacements = await Promise.all(
+      matches.map(async (m) => {
+        const varName = m.content;
 
-      if (manualValues.hasOwnProperty(varName)) {
-        return manualValues[varName];
-      } else if (
-        storedLocalVars.hasOwnProperty(varName) &&
-        storedLocalVars[varName] !== ""
-      ) {
-        return storedLocalVars[varName];
-      } else if (globalVar) {
-        return globalVar.value;
-      } else {
-        return match;
-      }
-    });
+        // Priority 1: Manual Input
+        if (manualValues.hasOwnProperty(varName))
+          return { ...m, replacement: manualValues[varName] };
+
+        // Priority 2: Stored Local
+        if (
+          storedLocalVars.hasOwnProperty(varName) &&
+          storedLocalVars[varName] !== ""
+        )
+          return { ...m, replacement: storedLocalVars[varName] };
+
+        // Priority 3: Global Variable (Async Resolve)
+        const globalVar = globalVars.find((gv) => gv.name === varName);
+        if (globalVar) {
+          return { ...m, replacement: await resolveVariableValue(globalVar) };
+        }
+
+        return { ...m, replacement: m.full };
+      })
+    );
+
+    let result = text;
+    for (let i = replacements.length - 1; i >= 0; i--) {
+      const r = replacements[i];
+      const before = result.substring(0, r.index);
+      const after = result.substring(r.index + r.full.length);
+      result = before + r.replacement + after;
+    }
+    text = result;
 
     const target = window.promptManager.lastFocused;
     if (!target) {

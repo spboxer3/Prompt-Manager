@@ -5,9 +5,7 @@
 
 **Prompt Manager** is a professional-grade Google Chrome Extension designed for efficient Prompt Engineering. Built on the **Manifest V3** standard, it combines a **Side Panel** for management and a **Spotlight Overlay** for rapid execution, ensuring a seamless workflow across any AI platform (ChatGPT, Claude, Gemini, etc.).
 
-
 ## 🚀 Key Features
-
 
 - **Local-First Privacy**: All data is stored locally in your browser (`chrome.storage.local`). No data is ever sent to external servers.
 - **Spotlight Overlay (Quick Insert)**:
@@ -18,16 +16,16 @@
 - **Smart Variable System**:
   - **Global Variables**: Define constant values (e.g., `{{name}}`, `{{language}}`) in Settings once, and they are auto-filled everywhere.
   - **Manual Variables**: Use dynamic placeholders like `{{topic}}` in your prompts. The extension generates input fields for you to fill in at runtime.
+  - **Advanced Variables (v1.2.0)**:
+    - **Page Elements**: Fetch data from the webpage using CSS Selectors (e.g., `{{pageTitle}}` -> `document.title`).
+    - **Scripts (JS)**: Execute JavaScript in a secure sandbox to calculate values (e.g., dates, text formatting) with read-only access to page data.
 - **One-Click Insertion**: Whether from the Side Panel or Spotlight, insert compiled prompts directly into the webpage's text area.
 - **Data Portability**: Full JSON Import/Export support with timestamped backups.
 - **Multi-Language Support**: Available in English, Traditional Chinese, Japanese, Korean, Spanish, and Portuguese.
 
-
 ## 📦 Installation
 
-
 Since this is a developer version, please follow these steps to install:
-
 
 1. Download or clone this repository to your local machine.
 2. Open Google Chrome and navigate to `chrome://extensions/`.
@@ -36,15 +34,11 @@ Since this is a developer version, please follow these steps to install:
 5. Select the folder containing the extension files (`manifest.json`, etc.).
 6. The extension is now installed!
 
-
 ## 🛠️ Usage Guide
-
 
 ### 1. The Spotlight (Quick Action)
 
-
 The Spotlight is your primary tool for daily usage. It floats over your current page.
-
 
 - **Open**: Click the extension icon in the toolbar or press **`Alt+P`** (Mac: `Option+P`).
 - **Search**: Type to filter your prompts by title, content, or tags.
@@ -52,12 +46,9 @@ The Spotlight is your primary tool for daily usage. It floats over your current 
 - **Insert**: Press `Enter` to compile and insert the prompt into the active input field (e.g., the chat box).
 - **Settings**: Click the gear icon in the Spotlight header to open the Side Panel manager.
 
-
 ### 2. The Side Panel (Management)
 
-
 Use the Side Panel to manage your library. Open it via the gear icon in Spotlight.
-
 
 - **Create Prompt**: Click `+` to add a new prompt.
   - Syntax: `Write a {{tone}} email about {{topic}}.`
@@ -66,26 +57,22 @@ Use the Side Panel to manage your library. Open it via the gear icon in Spotligh
   - Now, `{{tone}}` will be automatically replaced with `professional` whenever you use it.
 - **Import/Export**: Backup your data in the Settings tab.
 
-
 ### 3. Variable System
-
 
 - **Global**: `{{my_name}}` - Auto-replaced by the value defined in Settings.
 - **Manual**: `{{topic}}` - If not defined in Global, an input box will appear for you to type manually before insertion.
-
+- **Advanced (New in v1.2)**:
+  - **Selector**: Define a variable like `page_h1` = `h1` (selector). It automatically fetches the H1 text from the current page.
+  - **Script**: Define `today` = `return new Date().toLocaleDateString();`. It runs the JS and inserts the result. You can also use `document` (read-only) to access page content in your scripts!
 
 ## ⚙️ Configuration
-
 
 - **Language**: Switch interface language in the Side Panel Settings.
 - **Shortcuts**: Customize the activation shortcut in `chrome://extensions/shortcuts` (Default: `Alt+P`).
 
-
 ## 🔒 Privacy Policy
 
-
 Prompt Manager operates entirely **offline** within your browser.
-
 
 - **No Analytics**: We do not track your usage.
 - **No Cloud Storage**: Your prompts never leave your device unless you manually export them.
@@ -94,6 +81,5 @@ Prompt Manager operates entirely **offline** within your browser.
 For details, please see our <a href="https://github.com/spboxer3/Prompt-Manager/blob/main/PrivacyPolicy.md">Privacy Policy</a>
 
 ## 📄 License
-
 
 MIT License

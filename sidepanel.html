@@ -139,9 +139,51 @@
                             <input type="text" id="new-var-name" class="input-outline" placeholder="name">
                         </div>
                         <div class="form-group">
+                            <label data-i18n="varTypeLabel">Type</label>
+                            <select id="new-var-type" class="input-outline w-full" style="margin-bottom:8px">
+                                <option value="text" data-i18n="varTypeText" selected>Text</option>
+                                <option value="selector" data-i18n="varTypeSelector">Page Element (Selector)</option>
+                                <option value="script" data-i18n="varTypeScript">Script (JS)</option>
+                            </select>
+                        </div>
+
+                        <!-- Value Input (Text) -->
+                        <div id="group-var-text" class="form-group">
                             <label data-i18n="varValueLabel">Value</label>
                             <textarea id="new-var-value" class="input-outline" placeholder="value"
                                 style="min-height: 60px;"></textarea>
+                        </div>
+
+                        <!-- Selector Input -->
+                        <div id="group-var-selector" class="hidden">
+                            <div class="form-group">
+                                <label data-i18n="varSelectorLabel">CSS Selector</label>
+                                <input type="text" id="new-var-selector" class="input-outline"
+                                    data-i18n-placeholder="varSelectorPlaceholder" placeholder="#my-id or .my-class">
+                            </div>
+                            <div class="form-group">
+                                <label data-i18n="varAttributeLabel">Attribute (Optional)</label>
+                                <input type="text" id="new-var-attribute" class="input-outline"
+                                    data-i18n-placeholder="varAttributePlaceholder"
+                                    placeholder="innerText, value, href...">
+                                <span style="font-size:10px; color:#999" data-i18n="varAttributeDefault">Default:
+                                    innerText</span>
+                            </div>
+                        </div>
+
+                        <!-- Script Input -->
+                        <div id="group-var-script" class="hidden">
+                            <div class="form-group">
+                                <label data-i18n="varJavascriptLabel">JavaScript (return value)</label>
+                                <textarea id="new-var-script" class="input-outline"
+                                    data-i18n-placeholder="varJavascriptPlaceholder"
+                                    placeholder="return new Date().toString();"
+                                    style="min-height: 60px; font-family:monospace; font-size:12px;"></textarea>
+                                <p class="help-text" style="margin-top:4px; color:#e6a23c;"
+                                    data-i18n="varScriptWarning">
+                                    Note: 'document' is a read-only snapshot.
+                                </p>
+                            </div>
                         </div>
                         <div class="row">
                             <button id="btn-cancel-var" class="btn-outline w-full" data-i18n="cancel">Cancel</button>
@@ -162,7 +204,8 @@
 
                 <div class="settings-section outline-top" style="padding-top: 20px;">
                     <h3 class="section-title" data-i18n="aboutTitle">About</h3>
-                    <p class="help-text">Prompt Manager v1.0.0 by <a href="https://github.com/spboxer3/" target="_blank">Roland Chien</a></p>
+                    <p class="help-text">Prompt Manager v1.2.0 by <a href="https://github.com/spboxer3/"
+                            target="_blank">Roland Chien</a></p>
                     <a href="#" id="btn-clear-all" class="text-danger"
                         style="font-size: 12px; margin-top: 10px; display:block;" data-i18n="clearAllBtn">Clear All</a>
                 </div>
@@ -188,8 +231,19 @@
                 </div>
                 <div class="settings-section">
                     <h4 style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;"
-                        data-i18n="helpManualTitle">2. Manual</h4>
+                        data-i18n="helpManualTitle">2. Manual Variables</h4>
                     <p class="help-text" data-i18n="helpManualText">Text</p>
+                </div>
+                <!-- New Help Sections -->
+                <div class="settings-section">
+                    <h4 style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;"
+                        data-i18n="helpSelectorTitle">3. Page Elements</h4>
+                    <p class="help-text" data-i18n="helpSelectorText">Text</p>
+                </div>
+                <div class="settings-section">
+                    <h4 style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;"
+                        data-i18n="helpScriptTitle">4. Scripts (JS)</h4>
+                    <p class="help-text" data-i18n="helpScriptText">Text</p>
                 </div>
                 <div class="settings-section">
                     <h4 style="margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px;"
@@ -201,6 +255,8 @@
     </div>
 
     <!-- Include Locales First -->
+    <script src="locales.js"></script>
+    <iframe id="sandbox-frame" src="sandbox.html" style="display:none;"></iframe>
     <script src="locales.js"></script>
     <script src="sidepanel.js"></script>
 </body>
